@@ -7,6 +7,7 @@ import (
 
 	"github.com/dfioravanti/go-rest/internal/testcontainer"
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -26,7 +27,9 @@ func (s *TestSuite) SetupSuite() {
 
 	s.psqlContainer = psqlContainer
 
-	// run migrations
+}
+
+func (s *TestSuite) SetupTest() {
 	m, err := migrate.New(
 		"file://../../db/migrations",
 		s.psqlContainer.GetDSN(),
@@ -35,6 +38,22 @@ func (s *TestSuite) SetupSuite() {
 
 	err = m.Up()
 	s.NoError(err)
+}
+
+func (s *TestSuite) TearDownTest() {
+
+	stmt := `
+		DROP SCHEMA public CASCADE;
+		CREATE SCHEMA public;
+		GRANT ALL ON SCHEMA public TO public;
+	`
+
+	dbpool, err := pgxpool.New(context.Background(), s.psqlContainer.GetDSN())
+	s.NoError(err)
+
+	_, err = dbpool.Exec(context.Background(), stmt)
+	s.NoError(err)
+
 }
 
 func (s *TestSuite) TearDownSuite() {
