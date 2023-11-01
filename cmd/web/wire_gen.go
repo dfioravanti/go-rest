@@ -7,15 +7,18 @@
 package main
 
 import (
+	"context"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log/slog"
 	"os"
 )
 
 // Injectors from wire.go:
 
-func InitApp() Application {
+func InitApp(dsn string) Application {
 	logger := createLogger()
-	application := createApplication(logger)
+	pool := createDBConnection(dsn, logger)
+	application := createApplication(pool, logger)
 	return application
 }
 
@@ -30,6 +33,21 @@ func createLogger() *slog.Logger {
 	return logger
 }
 
-func createApplication(logger *slog.Logger) Application {
-	return Application{logger}
+func createDBConnection(dsn string, logger *slog.Logger) *pgxpool.Pool {
+
+	dbPool, err := pgxpool.New(context.Background(), dsn)
+	if err != nil {
+		logger.Error(err.Error())
+	}
+	err = dbPool.Ping(context.Background())
+	if err != nil {
+		logger.Error(err.Error())
+	}
+
+	return dbPool
+
+}
+
+func createApplication(dbPool *pgxpool.Pool, logger *slog.Logger) Application {
+	return Application{logger, dbPool}
 }

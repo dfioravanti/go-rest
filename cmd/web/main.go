@@ -5,18 +5,45 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/lib/pq"
 )
 
 type Application struct {
 	logger *slog.Logger
+	dbPool *pgxpool.Pool
+}
+
+// migrate the database to the last version
+func (app Application) migrateDB() {
+	m, err := migrate.New(
+		"file://db/migrations", // the path is relative to where the code is run
+		app.dbPool.Config().ConnString(),
+	)
+	if err != nil {
+		app.logger.Error(err.Error())
+	}
+
+	err = m.Up()
+	if err != nil {
+		app.logger.Error(err.Error())
+	}
 }
 
 func main() {
 
 	addr := flag.String("addr", ":4000", "HTTP network address")
+	dsn := flag.String("dsn", "postgresql://user:password@localhost:5432?sslmode=disable", "Postgres data source connection string")
 	flag.Parse()
 
-	app := InitApp()
+	app := InitApp(*dsn)
+	defer app.dbPool.Close()
+
+	app.migrateDB()
 
 	mux := http.NewServeMux()
 
