@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/dfioravanti/go-rest/internal/repositories"
+	"github.com/dfioravanti/go-rest/internal/services"
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -33,15 +35,28 @@ func createDBConnection(dsn string, logger *slog.Logger) *pgxpool.Pool {
 	}
 
 	return dbPool
-
 }
 
-func createApplication(dbPool *pgxpool.Pool, logger *slog.Logger) Application {
-	return Application{logger, dbPool}
+func createSnippetRepository(dbPool *pgxpool.Pool) *repositories.SnippetPostgresRepository {
+	return repositories.NewSnippetRepository(dbPool)
+}
+
+func createSnippetService(repository *repositories.SnippetPostgresRepository) *services.SnippetService {
+	return services.NewSnippetService(repository)
+}
+
+func createApplication(dbPool *pgxpool.Pool, logger *slog.Logger, snippetService *services.SnippetService) Application {
+	return Application{logger, dbPool, snippetService}
+}
+
+func initSnippetService(dbPool *pgxpool.Pool, logger *slog.Logger) *services.SnippetService {
+	wire.Build(createSnippetService, createSnippetRepository)
+
+	return &services.SnippetService{}
 }
 
 func InitApp(dsn string) Application {
-	wire.Build(createApplication, createLogger, createDBConnection)
+	wire.Build(createApplication, initSnippetService, createLogger, createDBConnection)
 
 	return Application{}
 }

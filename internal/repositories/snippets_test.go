@@ -10,11 +10,11 @@ import (
 
 func (s *TestSuite) TestSnippetCanBeInserted() {
 
-	dbpool, err := pgxpool.New(context.Background(), s.psqlContainer.GetDSN())
+	dbPool, err := pgxpool.New(context.Background(), s.psqlContainer.GetDSN())
 	s.NoError(err)
-	defer dbpool.Close()
+	defer dbPool.Close()
 
-	repository := SnippetPostgresRepository{DB: dbpool}
+	repository := SnippetPostgresRepository{dbPool: dbPool}
 
 	snippet, err := repository.Insert("O snail", "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa", time.Now())
 	s.NoError(err)
@@ -29,7 +29,7 @@ func (s *TestSuite) TestNoSnippetReturnsAnError() {
 	s.NoError(err)
 	defer dbpool.Close()
 
-	repository := SnippetPostgresRepository{DB: dbpool}
+	repository := SnippetPostgresRepository{dbPool: dbpool}
 
 	_, err = repository.Get(1)
 	s.ErrorIs(err, ErrNoRecord)
@@ -42,7 +42,7 @@ func (s *TestSuite) TestGetReadsOutWhatInsertWrites() {
 	s.NoError(err)
 	defer dbpool.Close()
 
-	repository := SnippetPostgresRepository{DB: dbpool}
+	repository := SnippetPostgresRepository{dbPool: dbpool}
 
 	expectedTitle := "O snail"
 	expectedContent := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
@@ -67,7 +67,7 @@ func (s *TestSuite) TestLatestsReturnMax10Elements() {
 	s.NoError(err)
 	defer dbpool.Close()
 
-	repository := SnippetPostgresRepository{DB: dbpool}
+	repository := SnippetPostgresRepository{dbPool: dbpool}
 
 	for i := 0; i < 15; i++ {
 		_, err := repository.Insert(strconv.Itoa(i), "Nonsense", time.Now().AddDate(0, 0, 7))
@@ -87,7 +87,7 @@ func (s *TestSuite) TestIgnoresExpiredElements() {
 	s.NoError(err)
 	defer dbpool.Close()
 
-	repository := SnippetPostgresRepository{DB: dbpool}
+	repository := SnippetPostgresRepository{dbPool: dbpool}
 
 	for i := 0; i < 3; i++ {
 		_, err := repository.Insert(strconv.Itoa(i), "Nonsense", time.Now().AddDate(0, 0, -7))

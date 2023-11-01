@@ -18,13 +18,17 @@ type SnippetRepository interface {
 }
 
 type SnippetPostgresRepository struct {
-	DB *pgxpool.Pool
+	dbPool *pgxpool.Pool
+}
+
+func NewSnippetRepository(dbPool *pgxpool.Pool) *SnippetPostgresRepository {
+	return &SnippetPostgresRepository{dbPool: dbPool}
 }
 
 // Insert a new snippet in the database.
 // Each snippet has an expire date.
 // After that date the snippet cannot be retrieved from the database.
-func (m *SnippetPostgresRepository) Insert(title string, content string, expires time.Time) (models.Snippet, error) {
+func (repo *SnippetPostgresRepository) Insert(title string, content string, expires time.Time) (models.Snippet, error) {
 
 	stmt := `
 		INSERT INTO snippets (title, content, expires)
@@ -33,7 +37,7 @@ func (m *SnippetPostgresRepository) Insert(title string, content string, expires
 	`
 
 	var s models.Snippet
-	err := m.DB.QueryRow(context.Background(), stmt, title, content, expires).Scan(&s.ID, &s.Title, &s.Content, &s.Created, &s.Expires)
+	err := repo.dbPool.QueryRow(context.Background(), stmt, title, content, expires).Scan(&s.ID, &s.Title, &s.Content, &s.Created, &s.Expires)
 	if err != nil {
 		return models.Snippet{}, err
 	}
@@ -42,7 +46,7 @@ func (m *SnippetPostgresRepository) Insert(title string, content string, expires
 }
 
 // Get a snippet by ID, if that snipped is not expired.
-func (m *SnippetPostgresRepository) Get(id int) (models.Snippet, error) {
+func (repo *SnippetPostgresRepository) Get(id int) (models.Snippet, error) {
 
 	var s models.Snippet
 
@@ -51,7 +55,7 @@ func (m *SnippetPostgresRepository) Get(id int) (models.Snippet, error) {
 		FROM snippets
     	WHERE expires > now_utc() AND id = $1`
 
-	err := m.DB.QueryRow(context.Background(), stmt, id).Scan(&s.ID, &s.Title, &s.Content, &s.Created, &s.Expires)
+	err := repo.dbPool.QueryRow(context.Background(), stmt, id).Scan(&s.ID, &s.Title, &s.Content, &s.Created, &s.Expires)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return models.Snippet{}, ErrNoRecord
@@ -64,7 +68,7 @@ func (m *SnippetPostgresRepository) Get(id int) (models.Snippet, error) {
 
 }
 
-func (m *SnippetPostgresRepository) Latest() ([]models.Snippet, error) {
+func (repo *SnippetPostgresRepository) Latest() ([]models.Snippet, error) {
 
 	var snippets []models.Snippet
 
@@ -74,7 +78,7 @@ func (m *SnippetPostgresRepository) Latest() ([]models.Snippet, error) {
     	WHERE expires > now_utc()
 		ORDER BY id DESC LIMIT 10
 	`
-	rows, err := m.DB.Query(context.Background(), stmt)
+	rows, err := repo.dbPool.Query(context.Background(), stmt)
 	if err != nil {
 		return nil, err
 	}

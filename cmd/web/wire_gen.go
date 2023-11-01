@@ -8,17 +8,32 @@ package main
 
 import (
 	"context"
+	"github.com/dfioravanti/go-rest/internal/repositories"
+	"github.com/dfioravanti/go-rest/internal/services"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log/slog"
 	"os"
 )
 
+import (
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/lib/pq"
+)
+
 // Injectors from wire.go:
+
+func initSnippetService(dbPool *pgxpool.Pool, logger *slog.Logger) *services.SnippetService {
+	snippetPostgresRepository := createSnippetRepository(dbPool)
+	snippetService := createSnippetService(snippetPostgresRepository)
+	return snippetService
+}
 
 func InitApp(dsn string) Application {
 	logger := createLogger()
 	pool := createDBConnection(dsn, logger)
-	application := createApplication(pool, logger)
+	snippetService := initSnippetService(pool, logger)
+	application := createApplication(pool, logger, snippetService)
 	return application
 }
 
@@ -48,6 +63,14 @@ func createDBConnection(dsn string, logger *slog.Logger) *pgxpool.Pool {
 
 }
 
-func createApplication(dbPool *pgxpool.Pool, logger *slog.Logger) Application {
-	return Application{logger, dbPool}
+func createSnippetRepository(dbPool *pgxpool.Pool) *repositories.SnippetPostgresRepository {
+	return repositories.NewSnippetRepository(dbPool)
+}
+
+func createSnippetService(repository *repositories.SnippetPostgresRepository) *services.SnippetService {
+	return services.NewSnippetService(repository)
+}
+
+func createApplication(dbPool *pgxpool.Pool, logger *slog.Logger, snippetService *services.SnippetService) Application {
+	return Application{logger, dbPool, snippetService}
 }
