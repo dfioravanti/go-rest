@@ -3,7 +3,22 @@ version: '3.1'
 
 services:
 
+  api_service:
+    container_name: api-service
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      target: prod
+    command: -dsn postgresql://user:password@db:5432?sslmode=disable
+    depends_on:
+      - db
+    ports:
+      - 8080:4000
+    networks:
+      - network
+
   db:
+    container_name: db
     image: postgres:15
     restart: always
     ports:
@@ -11,3 +26,8 @@ services:
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
+    networks:
+      - network
+
+networks:
+  network:

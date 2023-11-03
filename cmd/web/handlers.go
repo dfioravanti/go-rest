@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"text/template"
+
+	"github.com/dfioravanti/go-rest/internal/services"
 )
 
 func (app *Application) home(w http.ResponseWriter, r *http.Request) {
@@ -22,30 +24,35 @@ func (app *Application) home(w http.ResponseWriter, r *http.Request) {
 
 	ts, err := template.ParseFiles(files...)
 	if err != nil {
-		app.serverError(w, r, err)
+		app.ServerError(w, r, err)
 		return
 	}
 
 	err = ts.ExecuteTemplate(w, "base", nil)
 	if err != nil {
-		app.serverError(w, r, err)
+		app.ServerError(w, r, err)
 	}
 }
 
 func (app *Application) snippetView(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
-	if err != nil || id < 1 {
-		app.notFound(w)
+
+	snippet, err := app.service.Get(r.URL.Query().Get("id"))
+	if err != nil {
+		if errors.Is(err, services.ErrNoSnippetFound) {
+			app.notFound(w)
+		} else {
+			app.ServerError(w, r, err)
+		}
 		return
 	}
 
-	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+	fmt.Fprintf(w, "%+v", snippet)
 }
 
 func (app *Application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
-		app.clientError(w, http.StatusMethodNotAllowed)
+		app.ReturnError(w, HTTPError{Status: http.StatusMethodNotAllowed, Title: "Method not allowed", Detail: "Please use POST on this endpoint"})
 		return
 	}
 
