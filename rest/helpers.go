@@ -1,4 +1,4 @@
-package main
+package rest
 
 import (
 	"encoding/json"
@@ -12,21 +12,21 @@ type HTTPError struct {
 	Detail string
 }
 
-func (app *Application) ReturnError(w http.ResponseWriter, err HTTPError) {
+func (app Application) ReturnError(w http.ResponseWriter, err HTTPError) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(err.Status)
 	json.NewEncoder(w).Encode(err)
 }
 
-func (app *Application) ServerError(w http.ResponseWriter, r *http.Request, err error) {
+func (app Application) ServerError(w http.ResponseWriter, r *http.Request, err error) {
 	var (
 		method = r.Method
 		uri    = r.URL.RequestURI()
 		trace  = string(debug.Stack())
 	)
 
-	app.logger.Error(err.Error(), "method", method, "uri", uri, "trace", trace)
+	app.Logger.Error(err.Error(), "method", method, "uri", uri, "trace", trace)
 	app.ReturnError(w, HTTPError{
 		Status: http.StatusInternalServerError,
 		Title:  "Internal server error",
@@ -34,7 +34,7 @@ func (app *Application) ServerError(w http.ResponseWriter, r *http.Request, err 
 	})
 }
 
-func (app *Application) notFound(w http.ResponseWriter) {
+func (app Application) notFound(w http.ResponseWriter) {
 	app.ReturnError(w, HTTPError{
 		Status: http.StatusNotFound,
 		Title:  "Not found",

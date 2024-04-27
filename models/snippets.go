@@ -14,3 +14,9 @@ type Snippet struct {
 	Created time.Time
 	Expires time.Time
 }
+
+type SnippetService interface {
+	Insert(title string, content string, expires time.Time) (Snippet, error)
+	Get(id string) (Snippet, error)
+	Latest() ([]Snippet, error)
+}

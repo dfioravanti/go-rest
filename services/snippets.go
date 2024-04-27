@@ -3,24 +3,17 @@ package services
 import (
 	"errors"
 	"strconv"
-	"time"
 
-	"github.com/dfioravanti/go-rest/internal/models"
-	"github.com/dfioravanti/go-rest/internal/repositories"
+	"github.com/dfioravanti/go-rest/models"
+	"github.com/dfioravanti/go-rest/repositories"
 )
 
-type SnippetServiceInterface interface {
-	Insert(title string, content string, expires time.Time) (models.Snippet, error)
-	Get(id string) (models.Snippet, error)
-	Latest() ([]models.Snippet, error)
-}
-
 type SnippetService struct {
-	repository *repositories.SnippetPostgresRepository
+	repository repositories.SnippetRepository
 }
 
-func NewSnippetService(repository *repositories.SnippetPostgresRepository) *SnippetService {
-	return &SnippetService{repository: repository}
+func NewSnippetService(repository repositories.SnippetRepository) SnippetService {
+	return SnippetService{repository: repository}
 }
 
 func (service *SnippetService) Get(idFromURL string) (models.Snippet, error) {

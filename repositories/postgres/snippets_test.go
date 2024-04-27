@@ -1,10 +1,11 @@
-package repositories
+package postgres
 
 import (
 	"context"
 	"strconv"
 	"time"
 
+	"github.com/dfioravanti/go-rest/repositories"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -32,7 +33,7 @@ func (s *TestSuite) TestNoSnippetReturnsAnError() {
 	repository := SnippetPostgresRepository{dbPool: dbpool}
 
 	_, err = repository.Get(1)
-	s.ErrorIs(err, ErrNoRecord)
+	s.ErrorIs(err, repositories.ErrNoRecord)
 
 }
 

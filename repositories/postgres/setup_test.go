@@ -1,11 +1,11 @@
-package repositories
+package postgres
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/dfioravanti/go-rest/internal/testcontainer"
+	"github.com/dfioravanti/go-rest/mocks/testcontainer"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/suite"
